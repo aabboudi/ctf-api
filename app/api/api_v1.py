@@ -2,10 +2,10 @@ import os
 from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException
 from pymongo.errors import PyMongoError, DuplicateKeyError
-from ..schemas import PlayerProfile
-from ..config import players_collection
-from ..includes.Requests import AuthenticateRequest
-from ..includes.Hash import ncchash, create_access_token
+from app.db.schemas import PlayerProfile
+from app.db.config import players_collection
+from app.includes.Requests import AuthenticateRequest
+from app.includes.Hash import ncchash, create_access_token
 
 router = APIRouter()
 
