@@ -1,7 +1,11 @@
+from datetime import timedelta
+import os
 from fastapi import APIRouter, HTTPException
 from pymongo.errors import PyMongoError, DuplicateKeyError
 from ..db.PlayerProfile import PlayerProfile
 from ..config import players_collection
+from ..includes.Requests import AuthenticateRequest
+from ..includes.Hash import ncchash, create_access_token
 
 router = APIRouter()
 
@@ -21,6 +25,20 @@ async def get_scoreboard():
 
 
 '''API Endpoints for Player Profile Management'''
+# IPv4 & MAC Based Authentication
+@router.post("/authenticate", tags=["Player"])
+async def authenticate(request: AuthenticateRequest):
+  player_hash = ncchash(request.ipaddr, request.macaddr)
+  try:
+    player = players_collection.find_one({"ncchash": player_hash})
+    if player is None:
+      raise HTTPException(status_code=404, detail="Player not found")
+    access_token_expires = timedelta(minutes=int(os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES')))
+    access_token = create_access_token(data={"sub": player_hash}, expires_delta=access_token_expires)
+    return {"access_token": access_token, "access_token_expires": access_token_expires}
+  except Exception as e:
+    raise HTTPException(status_code=500, detail=str(e))
+
 # Get all player profiles
 @router.get("/get-player/{nccid}", tags=["Player"])
 async def get_player(nccid: str):
@@ -36,6 +54,7 @@ async def get_player(nccid: str):
 @router.post("/add-player", tags=["Player"])
 async def add_player(player: PlayerProfile):
   try:
+    player.ncchash = ncchash(player.ipaddr, player.macaddr)
     players_collection.insert_one(player.model_dump())
     return {"message": "Player data received successfully", "data": player.model_dump()}
   except DuplicateKeyError:
