@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .api.api_v1 import router as api_v1_router
+from dotenv import load_dotenv
 
 app = FastAPI(
   title="NCC Control Center",
@@ -16,5 +17,6 @@ app.add_middleware(
   allow_methods=["*"],
   allow_headers=["*"],
 )
+load_dotenv()
 
 app.include_router(api_v1_router, prefix="/api/v1")
