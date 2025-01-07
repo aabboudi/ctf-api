@@ -5,6 +5,7 @@ from fastapi.security import OAuth2PasswordBearer
 from hashlib import sha256
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
+from ..db.config import SECRET_KEY, ALGORITHM
 
 # Key Hashing Context
 hsah_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -25,5 +26,5 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
         expire = datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
     print(os.getenv("SECRET_KEY"))
-    encoded_jwt = jwt.encode(to_encode, os.getenv("SECRET_KEY"), algorithm=os.getenv("ALGORITHM"))
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
