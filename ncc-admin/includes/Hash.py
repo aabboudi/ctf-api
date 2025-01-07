@@ -5,12 +5,7 @@ from fastapi.security import OAuth2PasswordBearer
 from hashlib import sha256
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
-
-# Key Hashing Context
-hsah_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# Token generation
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+from config import SECRET_KEY, ALGORITHM
 
 def ncchash(ip: str, mac: str) -> str:
     #Hashes the IP and MAC address
@@ -24,6 +19,5 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None):
     else:
         expire = datetime.utcnow() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
-    print(os.getenv("SECRET_KEY"))
-    encoded_jwt = jwt.encode(to_encode, os.getenv("SECRET_KEY"), algorithm=os.getenv("ALGORITHM"))
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
