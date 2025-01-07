@@ -6,7 +6,7 @@ from app.db.schemas import PlayerProfile
 from app.db.config import players_collection
 from app.includes.Requests import AuthenticateRequest
 from app.includes.Hash import ncchash, create_access_token
-
+from ..db.config import ACCESS_TOKEN_EXPIRE_MINUTES
 router = APIRouter()
 
 '''
@@ -87,7 +87,7 @@ async def authenticate(request: AuthenticateRequest):
     player = players_collection.find_one({"ncchash": player_hash})
     if player is None:
       raise HTTPException(status_code=404, detail="Player not found")
-    access_token_expires = timedelta(minutes=int(os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES')))
+    access_token_expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES))
     access_token = create_access_token(data={"sub": player_hash}, expires_delta=access_token_expires)
     return {"access_token": access_token, "access_token_expires": access_token_expires}
   except Exception as e:
