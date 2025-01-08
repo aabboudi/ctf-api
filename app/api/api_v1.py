@@ -7,7 +7,6 @@ from app.db.schemas import PlayerProfile
 from app.db.config import players_collection
 from app.includes.Requests import AuthenticateRequest
 from app.includes.Hash import ncchash, create_access_token
-
 from ..db.config import ACCESS_TOKEN_EXPIRE_MINUTES
 router = APIRouter()
 
