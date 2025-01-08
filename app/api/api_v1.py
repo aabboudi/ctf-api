@@ -54,15 +54,14 @@ async def add_points(nccid: str, score: int):
 Player Profile Management
 '''
 # Check if username already exist
-@router.post("/check-username/{username}", tags=["Player"])
+@router.get("/check-username/{username}", tags=["Player"])
 async def check_username(username: str):
   try:
-    # TODO: Check if an player exists with the same username
     player = players_collection.find_one({"username": username})
     if player is None:
         return JSONResponse(content={"message": "Username is valid"}, status_code=200)    
     else:
-      raise HTTPException(status_code=200, detail="Player exists")
+      raise HTTPException(status_code=409, detail="Username already exists")
   except Exception as e:
     raise HTTPException(status_code=500, detail=str(e))
 # Get all player profiles
@@ -87,7 +86,7 @@ async def add_player(player: PlayerProfile):
     players_collection.insert_one(player.model_dump())
     return JSONResponse(content={"message": "Player data received successfully", "data": player.model_dump()}, status_code=200)
   except DuplicateKeyError:
-    raise HTTPException(status_code=400, detail="Player already exists")
+    raise HTTPException(status_code=409, detail="Player already exists")
   except Exception as e:
     raise HTTPException(status_code=500, detail=str(e))
 
