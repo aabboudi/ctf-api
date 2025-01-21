@@ -8,13 +8,11 @@ app = FastAPI(
   version="0.1.0",
   swagger_ui_parameters={"theme": "dark"}
 )
-
 app.add_middleware(
-  CORSMiddleware,
-  allow_origins=["*"],
-  allow_credentials=True,
-  allow_methods=["*"],
-  allow_headers=["*"],
+    CORSMiddleware,
+    allow_origins=["*", "ws://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-
 app.include_router(api_v1_router, prefix="/api/v1")
