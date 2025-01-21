@@ -61,7 +61,7 @@ async def check_username(username: str):
     if player is None:
         return JSONResponse(content={"message": "Username is valid"}, status_code=200)    
     else:
-      raise HTTPException(status_code=409, detail="Username already exists")
+       return JSONResponse(content={"message": "Username already exists"}, status_code=409)    
   except Exception as e:
     raise HTTPException(status_code=500, detail=str(e))
 # Get all player profiles
@@ -79,14 +79,18 @@ async def get_player(nccid: str):
 @router.post("/add-player", tags=["Player"])
 async def add_player(player: PlayerProfile):
   try:
-    player.ncchash = ncchash(player.ipaddr, player.macaddr)
-    # TODO: Add timezone
-    player.createdAt = datetime.now().isoformat()
-    player.updatedAt = datetime.now().isoformat()
-    players_collection.insert_one(player.model_dump())
-    return JSONResponse(content={"message": "Player data received successfully", "data": player.model_dump()}, status_code=200)
+    exist_player = players_collection.find_one({"username": player.username})
+    if exist_player is None:
+      player.ncchash = ncchash(player.ipaddr, player.macaddr)
+      # TODO: Add timezone
+      player.createdAt = datetime.now().isoformat()
+      player.updatedAt = datetime.now().isoformat()
+      players_collection.insert_one(player.model_dump())
+      return JSONResponse(content={"message": "Player data received successfully", "data": player.model_dump()}, status_code=200)
+    else:
+      return JSONResponse(content={"detail": "Username already exist."},  status_code=409)
   except DuplicateKeyError:
-    raise HTTPException(status_code=409, detail="Player already exists")
+    return JSONResponse(status_code=409, content={"detail": "Player already exists"})
   except Exception as e:
     raise HTTPException(status_code=500, detail=str(e))
 
@@ -97,10 +101,18 @@ async def authenticate(request: AuthenticateRequest):
   try:
     player = players_collection.find_one({"ncchash": player_hash})
     if player is None:
-      raise HTTPException(status_code=404, detail="Player not found")
+      return JSONResponse(status_code=404, content={"message": "Player not found"})
     access_token_expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES))
     access_token = create_access_token(data={"sub": player_hash}, expires_delta=access_token_expires)
-    return {"access_token": access_token, "access_token_expires": access_token_expires}
+    # Convert timedelta to seconds
+    access_token_expires_seconds = access_token_expires.total_seconds()
+    return JSONResponse(
+        status_code=200,
+        content={
+            "access_token": access_token,
+            "access_token_expires": access_token_expires_seconds  # Return as seconds
+        }
+    )
   except Exception as e:
     raise HTTPException(status_code=500, detail=str(e))
 
