@@ -61,7 +61,7 @@ async def check_username(username: str):
     if player is None:
         return JSONResponse(content={"message": "Username is valid"}, status_code=200)    
     else:
-       return JSONResponse(content={"message": "Username already exists"}, status_code=409)    
+        return JSONResponse(content={"message": "Username already exists"}, status_code=409)    
   except Exception as e:
     raise HTTPException(status_code=500, detail=str(e))
 # Get all player profiles
