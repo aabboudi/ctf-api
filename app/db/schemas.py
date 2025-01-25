@@ -46,3 +46,17 @@ class PlayerProfile(UserProfile):
 
 class AdminProfile(UserProfile):
   password: str = Field(..., example="securepassword123")
+
+class FlagType(str, Enum):
+  main = "main"
+  side = "side"
+
+class CapturedBy(BaseModel):
+  id: int = Field(..., description="ID of the capturer")
+  username: str = Field(..., description="Username of the capturer")
+  capturedAt: datetime = Field(..., description="Timestamp of when it was captured")
+
+class FlagInput(BaseModel):
+  flag: str = Field(min_length=10, description="Flag must be at least 10 characters long")
+  score: int = Field(gt=0, example=1, default=10, description="Score must be greater than 0")
+  type: FlagType

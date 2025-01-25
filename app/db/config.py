@@ -10,15 +10,23 @@ MONGO_URI = os.getenv('MONGODB_URI')
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
 ACCESS_TOKEN_EXPIRE_MINUTES = os.getenv('ACCESS_TOKEN_EXPIRE_MINUTES')
+
+# Database Client
 client = MongoClient(MONGO_URI)
 db = client['players']
 players_collection = db['profiles']
+flags_collection = db['flags']
 
-# Create Indexes
+# Database Indexes
 players_collection.create_index(
   [('username', 1),
   ('nccid', 1),
   ('macaddr', 1),
   ('ipaddr', 1)], 
+  unique=True
+)
+
+flags_collection.create_index(
+  [('flag', 1),],
   unique=True
 )
