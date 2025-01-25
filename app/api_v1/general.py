@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from pymongo.errors import PyMongoError
+from fastapi.responses import JSONResponse
 from app.db.config import players_collection
 router = APIRouter()
 
@@ -7,15 +7,20 @@ router = APIRouter()
 General API Status
 '''
 # Get health status of the API
-@router.get("/", tags=["Status"])
+@router.get("/", tags=["General"])
 def health_check():
   return {"Status": "Running"}
 
-# Get all player scores in descending order
-@router.get("/get-scoreboard", tags=["Status"])
-async def get_scoreboard():
+# Check if username already exist
+@router.get("/check-username", tags=["General"])
+async def check_username(username: str):
   try:
-    users = players_collection.find({}, {"_id": 0, "username": 1, "score": 1}).sort("score", -1)
-    return [{"username": user["username"], "score": user["score"]} for user in users]
-  except PyMongoError as e:
-    raise HTTPException(status_code=500, detail=f"Database error: {e}")
+    if len(username)<3:
+      raise HTTPException(status_code=400, detail="Username must be longer than 3 character")
+    player = players_collection.find_one({"username": username})
+    if player is None:
+      return JSONResponse(content={"message": "Username is valid"}, status_code=200)    
+    else:
+      raise HTTPException(status_code=409, detail="Username already exists")
+  except Exception as e:
+    raise HTTPException(status_code=500, detail=str(e))

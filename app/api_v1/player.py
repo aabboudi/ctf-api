@@ -1,28 +1,17 @@
 from datetime import datetime, timedelta
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pymongo.errors import PyMongoError, DuplicateKeyError
 from fastapi.responses import JSONResponse
+from app.db import partials as dbx
 from app.db.schemas import PlayerProfile
-from app.db.config import players_collection
-from app.includes.Requests import AuthenticateRequest
-from app.includes.Hash import ncchash, create_access_token
-from ..db.config import ACCESS_TOKEN_EXPIRE_MINUTES
+from app.db.config import ACCESS_TOKEN_EXPIRE_MINUTES, players_collection, flags_collection
+from app.lib.hash import ncchash, create_access_token
+from app.lib.auth import get_current_user
 router = APIRouter()
 
 '''
 Player Profile Management
 '''
-# Check if username already exist
-@router.get("/check-username/{username}", tags=["Player"])
-async def check_username(username: str):
-  try:
-    player = players_collection.find_one({"username": username})
-    if player is None:
-        return JSONResponse(content={"message": "Username is valid"}, status_code=200)    
-    else:
-      raise HTTPException(status_code=409, detail="Username already exists")
-  except Exception as e:
-    raise HTTPException(status_code=500, detail=str(e))
 # Get all player profiles
 @router.get("/get-player/{nccid}", tags=["Player"])
 async def get_player(nccid: str):
@@ -38,7 +27,7 @@ async def get_player(nccid: str):
 @router.post("/add-player", tags=["Player"])
 async def add_player(player: PlayerProfile):
   try:
-    player.ncchash = ncchash(player.ipaddr, player.macaddr)
+    player.ncchash = ncchash(ip=player.ipaddr, mac=player.macaddr)
     # TODO: Add timezone
     player.createdAt = datetime.now().isoformat()
     player.updatedAt = datetime.now().isoformat()
@@ -51,7 +40,7 @@ async def add_player(player: PlayerProfile):
 
 # IPv4 & MAC Based Authentication
 @router.post("/authenticate", tags=["Player"])
-async def authenticate(request: AuthenticateRequest):
+async def authenticate(request: dbx.AuthenticateRequest):
   player_hash = ncchash(request.ipaddr, request.macaddr)
   try:
     player = players_collection.find_one({"ncchash": player_hash})
@@ -77,13 +66,13 @@ async def update_score(nccid: str, score: int):
     raise HTTPException(status_code=500, detail=str(e))
 
 # Delete a player profile
-@router.delete("/delete-player/{nccid}", tags=["Player"])
-async def delete_player(nccid: str):
+@router.delete("/delete-player", tags=["Player"])
+async def delete_player(ncchash: str = Depends(get_current_user)):
   try:
-    result = players_collection.delete_one({"nccid": nccid})
-    if result.deleted_count == 0:
+    profile = players_collection.delete_one({"ncchash": ncchash})
+    if profile.deleted_count == 0:
       raise HTTPException(status_code=404, detail="Player not found")
-    return {"message": "Player deleted successfully", "nccid": nccid}
+    return {"message": "Player deleted successfully", "ncchash": ncchash}
   except PyMongoError as e:
     raise HTTPException(status_code=500, detail=f"Database error: {e}")
   except Exception as e:
