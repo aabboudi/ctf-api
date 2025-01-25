@@ -23,4 +23,4 @@ async def check_username(username: str):
     else:
       raise HTTPException(status_code=409, detail="Username already exists")
   except Exception as e:
-    raise HTTPException(status_code=500, detail=str(e))
+    raise HTTPException(status_code=500, detail="An error occurred while checking the username")
