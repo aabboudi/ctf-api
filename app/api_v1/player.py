@@ -52,16 +52,38 @@ async def authenticate(request: dbx.AuthenticateRequest):
   except Exception as e:
     raise HTTPException(status_code=500, detail=str(e))
 
-# Update an existing player score
-@router.put("/update-score/{nccid}", tags=["Player"])
-async def update_score(nccid: str, score: int):
+# Submit flag
+@router.post("/submit-flag", tags=["Player"])
+async def submit_flag(request: dbx.SubmitFlagRequest, ncchash: str = Depends(get_current_user)):
   try:
-    players_collection.find_one_and_update(
-      {"nccid": nccid},
-      {"$inc": {"score": score}},
+    encrypted_flag = request.flag
+    flag = encrypted_flag # decrypt flag
+    
+    # Validate submission
+    db_flag = flags_collection.find_one({"flag": flag}, {"_id": 0})
+    db_profile = players_collection.find_one({"ncchash": ncchash}, {"_id": 0})
+    
+    if not db_flag:
+      raise HTTPException(status_code=404, detail="Flag invalid.")
+
+    # Check if player has already captured this flag
+    if any(capture["nccid"] == db_profile["nccid"] for capture in db_flag.get('capturedBy', [])):
+      raise HTTPException(status_code=409, detail="Flag already captured by you")
+
+    # Add player to capturedBy list
+    flags_collection.find_one_and_update(
+      {"flag": flag},
+      {"$push": {"capturedBy": {"nccid": db_profile["nccid"], "username": db_profile["username"], "capturedAt": datetime.now().isoformat()}}},
+      return_document=False
+    )
+
+    # Update player score
+    db_profile = players_collection.find_one_and_update(
+      {"ncchash": ncchash},
+      {"$inc": {"score": db_flag["score"]}},
       return_document=True
     )
-    return {"message": "Score updated successfully", "nccid": nccid, "score": score}
+    return {"message": "Flag submitted successfully", "nccid": db_profile["nccid"], "username": db_profile["username"], "score": db_profile["score"]}
   except Exception as e:
     raise HTTPException(status_code=500, detail=str(e))
 
