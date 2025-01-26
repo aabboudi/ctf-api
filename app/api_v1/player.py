@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from app.db import partials as dbx
 from app.db.schemas import PlayerProfile
 from app.db.config import ACCESS_TOKEN_EXPIRE_MINUTES, players_collection, flags_collection
-from app.lib.hash import create_ncchash, create_access_token
+from app.lib.hash import create_ncchash, create_access_token, decrypt_flag
 from app.lib.auth import get_current_user
 router = APIRouter()
 
@@ -61,7 +61,7 @@ async def authenticate(request: dbx.AuthenticateRequest):
 async def submit_flag(request: dbx.SubmitFlagRequest, ncchash: str = Depends(get_current_user)):
   try:
     encrypted_flag = request.flag
-    flag = encrypted_flag # decrypt flag
+    flag = decrypt_flag(ncchash=ncchash, ciphertext=encrypted_flag)
     
     # Validate submission
     db_flag = flags_collection.find_one({"flag": flag}, {"_id": 0})
