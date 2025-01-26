@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from app.db import partials as dbx
 from app.db.schemas import PlayerProfile
 from app.db.config import ACCESS_TOKEN_EXPIRE_MINUTES, players_collection, flags_collection
-from app.lib.hash import ncchash, create_access_token
+from app.lib.hash import create_ncchash, create_access_token
 from app.lib.auth import get_current_user
 router = APIRouter()
 
@@ -20,9 +20,9 @@ async def get_player(ncchash: str = Depends(get_current_user)):
     player = players_collection.find_one({"ncchash": ncchash}, {"_id": 0})
     if player is None:
       raise HTTPException(status_code=404, detail="Player not found")
-    return player
-  except Exception:
-    raise HTTPException(status_code=500, detail="An error occurred while getting player profile")
+    return JSONResponse(status_code=200, content={"player": player})
+  except Exception as e:
+    raise HTTPException(status_code=500, detail=str(e))
 
 # Add a new player profile
 @router.post("/add-player", tags=["Player"])
@@ -30,35 +30,29 @@ async def add_player(player: PlayerProfile):
   try:
     player_exists = players_collection.find_one({"username": player.username})
     if player_exists:
-      return JSONResponse(content={"detail": "Username already exist."},  status_code=409)
-    player.ncchash = ncchash(ip=player.ipaddr, mac=player.macaddr)
+      raise HTTPException(status_code=409, detail="Username already exists")
+    player.ncchash = create_ncchash(ip=player.ipaddr, mac=player.macaddr)
     player.createdAt = datetime.now().isoformat()
     player.updatedAt = datetime.now().isoformat()
     players_collection.insert_one(player.model_dump())
-    return JSONResponse(content={"message": "Player account created successfully", "profile": player.model_dump()}, status_code=200)
+    return JSONResponse(status_code=200, content={"message": "Player account created successfully", "profile": player.model_dump()})
   except DuplicateKeyError:
     raise HTTPException(status_code=409, detail="Player already exists")
   except Exception as e:
-    raise HTTPException(status_code=500, detail="An error occurred while adding a player")
+    raise HTTPException(status_code=500, detail=str(e))
 
 # IPv4 & MAC Based Authentication
 @router.post("/authenticate", tags=["Player"])
 async def authenticate(request: dbx.AuthenticateRequest):
-  player_hash = ncchash(request.ipaddr, request.macaddr)
+  player_hash = create_ncchash(request.ipaddr, request.macaddr)
   try:
     player = players_collection.find_one({"ncchash": player_hash})
     if player is None:
       return JSONResponse(status_code=404, content={"message": "Player not found"})
-    access_token_expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES))
-    access_token = create_access_token(data={"sub": player_hash}, expires_delta=access_token_expires)
-    access_token_expires_seconds = access_token_expires.total_seconds()
-    return JSONResponse(
-      status_code=200,
-      content={
-        "player": player,
-        "access_token": access_token,
-        "access_token_expires": access_token_expires_seconds
-        })
+    expires = timedelta(minutes=int(ACCESS_TOKEN_EXPIRE_MINUTES))
+    access_token = create_access_token(data={"sub": player_hash}, expires_delta=expires)
+    expires_seconds = expires.total_seconds()
+    return JSONResponse(status_code=200, content={"access_token": access_token, "expires": expires_seconds})
   except Exception as e:
     raise HTTPException(status_code=500, detail=str(e))
 
@@ -74,7 +68,7 @@ async def submit_flag(request: dbx.SubmitFlagRequest, ncchash: str = Depends(get
     db_profile = players_collection.find_one({"ncchash": ncchash}, {"_id": 0})
     
     if not db_flag:
-      raise HTTPException(status_code=404, detail="Flag invalid.")
+      raise HTTPException(status_code=404, detail="Flag invalid")
 
     # Check if player has already captured this flag
     if any(capture["nccid"] == db_profile["nccid"] for capture in db_flag.get('capturedBy', [])):
@@ -93,7 +87,7 @@ async def submit_flag(request: dbx.SubmitFlagRequest, ncchash: str = Depends(get
       {"$inc": {"score": db_flag["score"]}},
       return_document=True
     )
-    return {"message": "Flag submitted successfully", "nccid": db_profile["nccid"], "username": db_profile["username"], "score": db_profile["score"]}
+    return JSONResponse(status_code=200, content={"message": "Flag submitted successfully", "nccid": db_profile["nccid"], "username": db_profile["username"], "score": db_profile["score"]})
   except Exception as e:
     raise HTTPException(status_code=500, detail=str(e))
 
@@ -104,9 +98,9 @@ async def delete_player(ncchash: str = Depends(get_current_user)):
     profile = players_collection.delete_one({"ncchash": ncchash})
     if profile.deleted_count == 0:
       raise HTTPException(status_code=404, detail="Player not found")
-    return {"message": "Player deleted successfully", "ncchash": ncchash}
-  except PyMongoError as e:
-    raise HTTPException(status_code=500, detail=f"Database error: {e}")
+    return JSONResponse(status_code=200, content={"message": "Player deleted successfully", "nccid": profile["nccid"]})
+  except PyMongoError:
+    raise HTTPException(status_code=500, detail="Database error: an error occurred while deleting this player")
   except Exception as e:
     raise HTTPException(status_code=500, detail=str(e))
 
