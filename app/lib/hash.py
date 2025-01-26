@@ -11,8 +11,8 @@ hsah_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # Token generation
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-def ncchash(ip: str, mac: str) -> str:
-    #Hashes the IP and MAC address
+def create_ncchash(ip: str, mac: str) -> str:
+    # Hash the IP and MAC addresses
     combined = f";{ip};{mac};"
     return sha256(combined.encode('utf-8')).hexdigest()
     
