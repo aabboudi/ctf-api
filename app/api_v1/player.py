@@ -14,15 +14,15 @@ router = APIRouter()
 Player Profile Management
 '''
 # Get all player profiles
-@router.get("/get-player/{nccid}", tags=["Player"])
-async def get_player(nccid: str):
+@router.get("/get-player", tags=["Player"])
+async def get_player(ncchash: str = Depends(get_current_user)):
   try:
-    player = players_collection.find_one({"nccid": nccid}, {"_id": 0})
+    player = players_collection.find_one({"ncchash": ncchash}, {"_id": 0})
     if player is None:
       raise HTTPException(status_code=404, detail="Player not found")
     return player
-  except Exception as e:
-    raise HTTPException(status_code=500, detail=str(e))
+  except Exception:
+    raise HTTPException(status_code=500, detail="An error occurred while getting player profile")
 
 # Add a new player profile
 @router.post("/add-player", tags=["Player"])
