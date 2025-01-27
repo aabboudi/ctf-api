@@ -13,13 +13,17 @@ router = APIRouter()
 '''
 Player Profile Management
 '''
-# Get all player profiles
+# Get player profile
 @router.get("/get-player", tags=["Player"])
 async def get_player(ncchash: str = Depends(get_current_user)):
   try:
     player = players_collection.find_one({"ncchash": ncchash}, {"_id": 0})
     if player is None:
       raise HTTPException(status_code=404, detail="Player not found")
+    
+    # Remove sensitive data from response object
+    player.pop("ncchash", None)
+    player.pop("isAdmin", None)
     return JSONResponse(status_code=200, content={"player": player})
   except Exception as e:
     raise HTTPException(status_code=500, detail=str(e))
@@ -35,7 +39,12 @@ async def add_player(player: PlayerProfile):
     player.createdAt = datetime.now().isoformat()
     player.updatedAt = datetime.now().isoformat()
     players_collection.insert_one(player.model_dump())
-    return JSONResponse(status_code=200, content={"message": "Player account created successfully", "profile": player.model_dump()})
+
+    # Remove sensitive data from response object
+    player = player.model_dump()
+    player.pop("ncchash", None)
+    player.pop("isAdmin", None)
+    return JSONResponse(status_code=200, content={"message": "Player account created successfully", "profile": player})
   except DuplicateKeyError:
     raise HTTPException(status_code=409, detail="Player already exists")
   except Exception as e:
