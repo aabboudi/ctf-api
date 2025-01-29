@@ -74,12 +74,11 @@ async def submit_flag(request: dbx.SubmitFlagRequest, ncchash: str = Depends(get
     
     # Validate submission
     db_flag = flags_collection.find_one({"flag": flag}, {"_id": 0})
-    db_profile = players_collection.find_one({"ncchash": ncchash}, {"_id": 0})
-    
     if not db_flag:
       raise HTTPException(status_code=404, detail="Flag invalid")
 
     # Check if player has already captured this flag
+    db_profile = players_collection.find_one({"ncchash": ncchash}, {"_id": 0})
     if any(capture["nccid"] == db_profile["nccid"] for capture in db_flag.get('capturedBy', [])):
       raise HTTPException(status_code=409, detail="Flag already captured by you")
 
@@ -96,9 +95,16 @@ async def submit_flag(request: dbx.SubmitFlagRequest, ncchash: str = Depends(get
       {"$inc": {"score": db_flag["score"]}},
       return_document=True
     )
-    return JSONResponse(status_code=200, content={"message": "Flag submitted successfully", "nccid": db_profile["nccid"], "username": db_profile["username"], "score": db_profile["score"]})
+    return JSONResponse(status_code=200, content={
+      "message": "Flag submitted successfully",
+      "nccid": db_profile["nccid"],
+      "username": db_profile["username"],
+      "score": db_profile["score"]
+    })
+  except HTTPException as e:
+    raise HTTPException(status_code=e.status_code, detail=str(e))
   except Exception as e:
-    raise HTTPException(status_code=500, detail=str(e))
+    raise HTTPException(status_code=404, detail="Flag invalid")
 
 # Delete a player profile
 @router.delete("/delete-player", tags=["Player"])
