@@ -6,7 +6,7 @@ from app.db.partials import ExtraItem
 class UserProfile(BaseModel):
   firstname: str = Field(..., example="john")
   lastname: str = Field(..., example="doe")
-  avatar: HttpUrl | None
+  avatar: str | None
   isAdmin: bool = Field(default=False, description="Indicates if the entity is active")
   username: str = Field(..., example="johndoe")
   nccid: str = Field(..., example="123456")
