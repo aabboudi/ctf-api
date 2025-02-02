@@ -19,9 +19,8 @@ class UserProfile(BaseModel):
       "createdAt": "2021-01-01T00:00:00.000Z",
     }],
   )
-  createdAt: datetime | None = Field(deafult=None, example="2025-01-25T17:16:50.555+00:00")
-  updatedAt: datetime | None = Field(deafult=None, example="2025-01-25T17:16:50.555+00:00")
-
+  createdAt: Optional[datetime] = Field(default=None, example="2025-01-25T17:16:50.555+00:00")
+  updatedAt: Optional[datetime] = Field(default=None, example="2025-01-25T17:16:50.555+00:00")
 
 class PlayerProfile(UserProfile):
   ncchash: str | None = Field(example="5436dpiueaydiuh", default=None)

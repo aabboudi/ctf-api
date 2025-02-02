@@ -18,6 +18,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(router_general, prefix="/api/v1/general")
+app.include_router(router_general, prefix="/api/v1")
 app.include_router(router_player, prefix="/api/v1/player")
 app.include_router(router_admin, prefix="/api/v1/admin")
