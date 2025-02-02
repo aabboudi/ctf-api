@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from pymongo.errors import DuplicateKeyError
 from app.db import partials as dbx
 from app.db.schemas import PlayerProfile
-from app.db.config import ACCESS_TOKEN_EXPIRE_MINUTES, players_collection
+from app.db.config import ACCESS_TOKEN_EXPIRE_MINUTES, players_collection, flags_collection, store_collection
+from app.lib.auth import get_current_user
 from app.lib.hash import create_ncchash, create_access_token
 router = APIRouter()
 
@@ -69,3 +70,25 @@ async def authenticate(request: dbx.AuthenticateRequest):
     return JSONResponse(status_code=200, content={"access_token": access_token, "expires": expires_seconds})
   except Exception as e:
     raise HTTPException(status_code=500, detail=str(e))
+
+'''
+Stats
+'''
+@router.get("/stats/{mode}", tags=["General"])
+async def get_ctf_stats(mode: str, ncchash: str = Depends(get_current_user)):
+  try:
+    if mode not in ["players", "flags", "store"]:
+      raise HTTPException(status_code=400, detail="Stats mode invalid")
+    
+    if mode == "players":
+      stats = players_collection.count_documents({})
+    elif mode == "flags":
+      stats = flags_collection.count_documents({})
+    elif mode == "store":
+      stats = store_collection.count_documents({})
+    
+    return JSONResponse(status_code=200, content={"mode": mode, "total": stats})
+  except HTTPException as e:
+    raise HTTPException(status_code=e.status_code, detail=str(e))
+  except Exception:
+    raise HTTPException(status_code=400, detail=f"Unhandled error getting total {mode}")
