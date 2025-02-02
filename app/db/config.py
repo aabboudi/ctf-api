@@ -17,6 +17,10 @@ db = client['players']
 players_collection = db['profiles']
 flags_collection = db['flags']
 
+staff_db = client['staff']
+singletons_collection = staff_db['singletons']
+store_collection = staff_db['store']
+
 # Database Indexes
 players_collection.create_index(
   [('username', 1),
@@ -28,5 +32,10 @@ players_collection.create_index(
 
 flags_collection.create_index(
   [('flag', 1),],
+  unique=True
+)
+
+store_collection.create_index(
+  [('itemid', 1),],
   unique=True
 )

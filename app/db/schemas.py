@@ -6,7 +6,7 @@ from app.db.partials import ExtraItem
 class UserProfile(BaseModel):
   firstname: str = Field(..., example="john")
   lastname: str = Field(..., example="doe")
-  avatar: str | None
+  avatar: Optional[str] = Field(default=None)
   isAdmin: bool = Field(default=False, description="Indicates if the entity is active")
   username: str = Field(..., example="johndoe")
   nccid: str = Field(..., example="123456")
@@ -26,6 +26,7 @@ class PlayerProfile(UserProfile):
   ncchash: str | None = Field(example="5436dpiueaydiuh", default=None)
   ipaddr: str = Field(example="127.0.0.1", default=None)
   macaddr: str = Field(example="00:00:00:00:00:00", default=None)
+  storeUnlocked: bool = Field(example=False, default=False)
   level: int | None = Field(ge=0, example=0, default=0)
   hints: int | None = Field(ge=0, example=3, default=0)
   mines: int | None = Field(ge=0, example=3, default=0)
